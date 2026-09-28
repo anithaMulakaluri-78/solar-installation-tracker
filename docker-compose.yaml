@@ -1,0 +1,58 @@
+services:
+
+  mysql:
+    image: mysql:8.0
+    container_name: solar-mysql
+
+    environment:
+      MYSQL_DATABASE: solar_tracker
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_USER: solaruser
+      MYSQL_PASSWORD: solarpassword
+
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+    ports:
+      - "3307:3306"
+
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+
+  backend:
+    build:
+      context: ./backend
+
+    container_name: solar-backend
+
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/solar_tracker?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC
+      SPRING_DATASOURCE_USERNAME: solaruser
+      SPRING_DATASOURCE_PASSWORD: solarpassword
+
+    ports:
+      - "8081:8081"
+
+
+  frontend:
+    build:
+      context: ./frontend
+
+    container_name: solar-frontend
+
+    depends_on:
+      - backend
+
+    ports:
+      - "80:80"
+
+
+volumes:
+  mysql_data:
